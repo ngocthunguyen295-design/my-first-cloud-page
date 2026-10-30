@@ -1,31 +1,122 @@
-import csv
-import random
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>600 筆資料展示與管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        input[type="text"] {
+            padding: 8px 12px;
+            width: 250px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #343a40;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
 
-# 定義一些基本的隨機母體資料
-first_names = ['偉', '芳', '娜', '敏', '強', '麗', '勇', '秀英', '洋', '靜', '豪', '婷']
-last_names = ['張', '王', '李', '陳', '林', '黃', '吳', '蔡', '楊', '許', '鄭', '謝']
-cities = ['台北市', '台中市', '高雄市', '台南市', '新竹市', '桃園市']
+    <h1>600 筆資料清單</h1>
 
-data = []
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="搜尋姓名或城市..." oninput="filterData()">
+        <button onclick="exportCSV()">匯出 CSV 檔案</button>
+    </div>
 
-# 迴圈產生 600 筆資料
-for i in range(1, 601):
-    user_id = i
-    name = random.choice(last_names) + random.choice(first_names)
-    age = random.randint(18, 65)
-    city = random.choice(cities)
-    score = random.randint(60, 100)
-    
-    # 每筆資料的格式 [ID, 姓名, 年齡, 城市, 分數]
-    data.append([user_id, name, age, city, score])
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>姓名</th>
+                <th>年齡</th>
+                <th>城市</th>
+                <th>分數</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
 
-# 寫入 CSV 檔案
-filename = '600_records.csv'
-with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
-    writer = csv.writer(f)
-    # 寫入表頭
-    writer.writerow(['ID', '姓名', '年齡', '城市', '分數'])
-    # 寫入 600 筆資料
-    writer.writerows(data)
+    <div class="pagination">
+        <button onclick="prevPage()">上一頁</button>
+        <span id="pageInfo"></span>
+        <button onclick="nextPage()">下一頁</button>
+    </div>
 
-print(f'已成功產生 "{filename}"，共 600 筆資料！')
+    <script>
+        // 1. 產生 600 筆模擬資料
+        const firstNames = ['偉', '芳', '娜', '敏', '強', '麗', '勇', '秀英', '洋', '靜', '豪', '婷'];
+        const lastNames = ['張', '王', '李', '陳', '林', '黃', '吳', '蔡', '楊', '許', '鄭', '謝'];
+        const cities = ['台北市', '台中市', '高雄市', '台南市', '新竹市', '桃園市'];
+
+        const fullData = [];
+        for (let i = 1; i <= 600; i++) {
+            const name = lastNames[Math.floor(Math.random() * lastNames.length)] + 
+                         firstNames[Math.floor(Math.random() * firstNames.length)];
+            const age = Math.floor(Math.random() * 48) + 18;
+            const city = cities[Math.floor(Math.random() * cities.length)];
+            const score = Math.floor(Math.random() * 41) + 60;
+            
+            fullData.push({ id: i, name, age, city, score });
+        }
+
+        // 2. 分頁與搜尋控制變數
+        let filteredData = [...fullData];
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        // 3. 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const start = (currentPage - 1
